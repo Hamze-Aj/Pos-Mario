@@ -60,7 +60,7 @@ export function RecipeEditor({ product, onClose }: { product: RecipeProduct; onC
   return <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4" role="dialog" aria-modal="true" aria-label={`Recipe for ${product.name}`}>
     <div className="w-full max-w-xl rounded-xl border border-border bg-card shadow-xl">
       <header className="flex items-start justify-between border-b border-border p-5">
-        <div><h2 className="text-lg font-semibold">Recipe: {product.name}</h2><p className="mt-1 text-sm text-muted-foreground">Ingredient quantity used for one product. Use the stock item’s unit.</p></div>
+        <div><h2 className="text-lg font-semibold">Recipe: {product.name}</h2><p className="mt-1 text-sm text-muted-foreground">Amounts are consumed for one sale unit, in each ingredient’s inventory unit. Selling 50 units multiplies every recipe amount by 50.</p></div>
         <button onClick={onClose} className="rounded-md p-1 hover:bg-muted" aria-label="Close"><X className="h-4 w-4" /></button>
       </header>
       <div className="space-y-3 p-5">

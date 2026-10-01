@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react'
+import { useState, useEffect, type FormEvent } from 'react'
 import { useForm } from 'react-hook-form'
 import { zodResolver } from '@hookform/resolvers/zod'
 import { z } from 'zod'
@@ -6,7 +6,9 @@ import { supabase } from '@/lib/supabase'
 import { useAuthStore } from '@/store/authStore'
 import { PageHeader } from '@/components/shared/PageHeader'
 import { LoadingSpinner } from '@/components/shared/LoadingSpinner'
-import { Settings, Loader2, CheckCircle2 } from 'lucide-react'
+import { Settings, Loader2, CheckCircle2, Plus, Trash2, Armchair } from 'lucide-react'
+import { createTable, deleteTable, listTables } from '@/lib/saleService'
+import type { LocalTable } from '@/types/local'
 
 const schema = z.object({
   name: z.string().min(1, 'Business name is required'),
@@ -21,6 +23,10 @@ type FormValues = z.infer<typeof schema>
 export function SettingsPage() {
   const { business, setBusiness } = useAuthStore()
   const [saved, setSaved] = useState(false)
+  const [tables, setTables] = useState<LocalTable[]>([])
+  const [tableName, setTableName] = useState('')
+  const [tableError, setTableError] = useState<string | null>(null)
+  const [savingTable, setSavingTable] = useState(false)
 
   const { register, handleSubmit, reset, formState: { errors, isSubmitting } } = useForm<FormValues>({
     resolver: zodResolver(schema),
@@ -38,6 +44,32 @@ export function SettingsPage() {
       })
     }
   }, [business])
+
+  useEffect(() => {
+    if (business) listTables(business.id).then(setTables)
+  }, [business])
+
+  async function handleAddTable(event: FormEvent) {
+    event.preventDefault()
+    if (!business) return
+    setSavingTable(true)
+    setTableError(null)
+    try {
+      await createTable(business.id, tableName)
+      setTableName('')
+      setTables(await listTables(business.id))
+    } catch (error) {
+      setTableError(error instanceof Error ? error.message : 'Could not add table')
+    } finally {
+      setSavingTable(false)
+    }
+  }
+
+  async function handleDeleteTable(id: string) {
+    if (!business) return
+    await deleteTable(id)
+    setTables(await listTables(business.id))
+  }
 
   async function onSubmit(values: FormValues) {
     if (!business) return
@@ -132,6 +164,28 @@ export function SettingsPage() {
           </div>
         </div>
       </form>
+
+      <section className="rounded-xl border border-border bg-card p-6 space-y-4">
+        <div>
+          <h2 className="flex items-center gap-2 text-base font-semibold"><Armchair className="h-4 w-4 text-primary" />Dining tables</h2>
+          <p className="mt-1 text-sm text-muted-foreground">Register the tables available for orders. Table assignments are saved with draft orders on this POS device.</p>
+        </div>
+        <form onSubmit={handleAddTable} className="flex gap-2">
+          <input aria-label="Table name" value={tableName} onChange={event => setTableName(event.target.value)} placeholder="e.g. Table 1" className="min-w-0 flex-1 rounded-lg border border-input bg-background px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-primary/50" />
+          <button type="submit" disabled={savingTable || !tableName.trim()} className="flex items-center gap-2 rounded-lg bg-primary px-4 py-2 text-sm font-semibold text-primary-foreground hover:bg-primary/90 disabled:opacity-60">
+            {savingTable ? <Loader2 className="h-4 w-4 animate-spin" /> : <Plus className="h-4 w-4" />} Add table
+          </button>
+        </form>
+        {tableError && <p role="alert" className="text-xs text-destructive">{tableError}</p>}
+        {tables.length === 0 ? <p className="text-sm text-muted-foreground">No tables registered yet.</p> : (
+          <ul className="divide-y divide-border rounded-lg border border-border">
+            {tables.map(table => <li key={table.id} className="flex items-center justify-between px-3 py-2.5 text-sm">
+              <span>{table.name}</span>
+              <button type="button" onClick={() => handleDeleteTable(table.id)} aria-label={`Delete ${table.name}`} className="rounded-md p-2 text-muted-foreground hover:bg-destructive/10 hover:text-destructive"><Trash2 className="h-4 w-4" /></button>
+            </li>)}
+          </ul>
+        )}
+      </section>
     </div>
   )
 }

@@ -1,5 +1,5 @@
 import Dexie, { Table } from 'dexie'
-import type { LocalProduct, LocalCategory, LocalSale, LocalDraft } from '@/types/local'
+import type { LocalProduct, LocalCategory, LocalSale, LocalDraft, LocalTable } from '@/types/local'
 
 /**
  * POS local database using Dexie (IndexedDB abstraction).
@@ -19,6 +19,7 @@ export class PosDatabase extends Dexie {
   categories!: Table<LocalCategory>
   sales!: Table<LocalSale>
   drafts!: Table<LocalDraft>
+  tables!: Table<LocalTable>
 
   constructor() {
     super('pos_mario_db')
@@ -34,6 +35,14 @@ export class PosDatabase extends Dexie {
       categories: 'id, business_id, active',
       sales:      'id, business_id, sync_status, employee_id, created_at',
       drafts:     'id, business_id, updated_at',
+    })
+
+    this.version(3).stores({
+      products:   'id, business_id, category_id, active',
+      categories: 'id, business_id, active',
+      sales:      'id, business_id, sync_status, employee_id, created_at',
+      drafts:     'id, business_id, updated_at, table_id',
+      tables:     'id, business_id, name',
     })
   }
 }

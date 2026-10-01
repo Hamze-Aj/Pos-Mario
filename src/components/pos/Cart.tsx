@@ -4,14 +4,18 @@ import { CartItem } from './CartItem'
 import { formatCurrency } from '@/lib/utils'
 import { ShoppingCart, Trash2, Tag, FileText, Loader2 } from 'lucide-react'
 import { EmptyState } from '@/components/shared/EmptyState'
+import type { LocalTable } from '@/types/local'
 
 interface CartProps {
   onCheckout: () => void
   onSaveDraft: () => Promise<void> | void
   activeDraftId?: string | null
+  tables: LocalTable[]
+  selectedTableId: string
+  onTableChange: (tableId: string) => void
 }
 
-export function Cart({ onCheckout, onSaveDraft, activeDraftId }: CartProps) {
+export function Cart({ onCheckout, onSaveDraft, activeDraftId, tables, selectedTableId, onTableChange }: CartProps) {
   const { items, subtotal, discountTotal, taxTotal, grandTotal, clearCart, setDiscount } = useCartStore()
   const [discountInput, setDiscountInput] = useState('')
   const [discountMode, setDiscountMode] = useState<'percent' | 'fixed'>('fixed')
@@ -83,6 +87,14 @@ export function Cart({ onCheckout, onSaveDraft, activeDraftId }: CartProps) {
       {/* Discount + Totals */}
       {items.length > 0 && (
         <div className="border-t border-border p-4 space-y-3 bg-muted/30">
+          <div>
+            <label htmlFor="cart-table" className="mb-1.5 block text-xs font-medium text-muted-foreground">Order table</label>
+            <select id="cart-table" value={selectedTableId} onChange={e => onTableChange(e.target.value)} className="w-full rounded-lg border border-input bg-background px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-primary/50">
+              <option value="">No table selected</option>
+              {tables.map(table => <option key={table.id} value={table.id}>{table.name}</option>)}
+            </select>
+            {tables.length === 0 && <p className="mt-1 text-[11px] text-muted-foreground">Add tables in Settings to assign orders.</p>}
+          </div>
           {/* Discount row */}
           <div className="flex items-center gap-2">
             <Tag className="h-3.5 w-3.5 text-muted-foreground flex-shrink-0" />

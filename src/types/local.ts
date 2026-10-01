@@ -92,7 +92,17 @@ export interface LocalDraft {
   business_id: string
   items: LocalDraftItem[]
   discount_amount: number
+  table_id: string | null
+  table_name_snapshot: string | null
   notes: string | null
   created_at: string
   updated_at: string
+}
+
+/** A dining table registered for this business on this POS device. */
+export interface LocalTable {
+  id: string
+  business_id: string
+  name: string
+  created_at: string
 }

@@ -8,10 +8,10 @@ import { Cart } from '@/components/pos/Cart'
 import { PaymentModal } from '@/components/pos/PaymentModal'
 import { ReceiptModal } from '@/components/pos/ReceiptModal'
 import { StatusBadge } from '@/components/shared/StatusBadge'
-import { deleteDraft, listDrafts, saveDraft } from '@/lib/saleService'
+import { deleteDraft, listDrafts, listTables, saveDraft } from '@/lib/saleService'
 import { formatCurrency, formatDateTime } from '@/lib/utils'
 import { FileText, Search, Trash2 } from 'lucide-react'
-import type { LocalDraft, LocalSale } from '@/types/local'
+import type { LocalDraft, LocalSale, LocalTable } from '@/types/local'
 import type { CartItem } from '@/store/cartStore'
 
 export function POSPage() {
@@ -26,11 +26,14 @@ export function POSPage() {
   const [drafts, setDrafts] = useState<LocalDraft[]>([])
   const [activeDraftId, setActiveDraftId] = useState<string | null>(null)
   const [draftMsg, setDraftMsg] = useState<string | null>(null)
+  const [tables, setTables] = useState<LocalTable[]>([])
+  const [selectedTableId, setSelectedTableId] = useState('')
 
   const refreshDrafts = useCallback(async () => {
     if (!business) return
     const rows = await listDrafts(business.id)
     setDrafts(rows)
+    setTables(await listTables(business.id))
   }, [business])
 
   useEffect(() => {
@@ -49,6 +52,7 @@ export function POSPage() {
 
   function handleSaleComplete(sale: LocalSale) {
     clearCart()
+    setSelectedTableId('')
     setPaymentOpen(false)
     setActiveDraftId(null)
     setCompletedSale(sale)
@@ -63,10 +67,13 @@ export function POSPage() {
       items,
       discountAmount: discountTotal,
       draftId: activeDraftId,
+      tableId: selectedTableId || null,
+      tableName: tables.find(table => table.id === selectedTableId)?.name ?? null,
     })
     setActiveDraftId(draft.id)
     setDraftMsg(activeDraftId ? 'Draft updated' : 'Draft saved')
     clearCart()
+    setSelectedTableId('')
     setActiveDraftId(null)
     await refreshDrafts()
     setTimeout(() => setDraftMsg(null), 2500)
@@ -84,6 +91,7 @@ export function POSPage() {
     }))
     loadFromDraft(items, draft.discount_amount)
     setActiveDraftId(draft.id)
+    setSelectedTableId(draft.table_id ?? '')
   }
 
   async function handleDeleteDraft(id: string) {
@@ -152,7 +160,7 @@ export function POSPage() {
                       >
                         <p className="font-medium truncate">{label || 'Empty draft'}</p>
                         <p className="text-muted-foreground">
-                          {formatDateTime(draft.updated_at)} · {formatCurrency(Math.max(total, 0))}
+                          {draft.table_name_snapshot ? `${draft.table_name_snapshot} · ` : ''}{formatDateTime(draft.updated_at)} · {formatCurrency(Math.max(total, 0))}
                         </p>
                       </button>
                       <button
@@ -183,6 +191,9 @@ export function POSPage() {
           onCheckout={() => setPaymentOpen(true)}
           onSaveDraft={handleSaveDraft}
           activeDraftId={activeDraftId}
+          tables={tables}
+          selectedTableId={selectedTableId}
+          onTableChange={setSelectedTableId}
         />
       </div>
 

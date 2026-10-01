@@ -3,7 +3,7 @@ import { db } from '@/lib/db'
 import { supabase } from '@/lib/supabase'
 import { getDeviceId, multiplyDecimals, subtractDecimals } from '@/lib/utils'
 import type { CartItem } from '@/store/cartStore'
-import type { LocalSale, LocalDraft } from '@/types/local'
+import type { LocalSale, LocalDraft, LocalTable } from '@/types/local'
 
 
 export interface CreateSaleInput {
@@ -186,6 +186,8 @@ export async function saveDraft(input: {
   discountAmount: number
   notes?: string | null
   draftId?: string | null
+  tableId?: string | null
+  tableName?: string | null
 }): Promise<LocalDraft> {
   if (input.items.length === 0) {
     throw new Error('Cannot save an empty draft')
@@ -212,6 +214,8 @@ export async function saveDraft(input: {
         ...existing,
         items,
         discount_amount: input.discountAmount,
+        table_id: input.tableId ?? null,
+        table_name_snapshot: input.tableName ?? null,
         notes: input.notes ?? existing.notes,
         updated_at: now,
       }
@@ -225,12 +229,34 @@ export async function saveDraft(input: {
     business_id: input.businessId,
     items,
     discount_amount: input.discountAmount,
+    table_id: input.tableId ?? null,
+    table_name_snapshot: input.tableName ?? null,
     notes: input.notes ?? null,
     created_at: now,
     updated_at: now,
   }
   await db.drafts.add(draft)
   return draft
+}
+
+export async function listTables(businessId: string): Promise<LocalTable[]> {
+  return db.tables.where('business_id').equals(businessId).sortBy('name')
+}
+
+export async function createTable(businessId: string, name: string): Promise<LocalTable> {
+  const normalizedName = name.trim()
+  if (!normalizedName) throw new Error('Enter a table name')
+  const existing = await listTables(businessId)
+  if (existing.some(table => table.name.toLowerCase() === normalizedName.toLowerCase())) {
+    throw new Error('A table with this name already exists')
+  }
+  const table: LocalTable = { id: uuidv4(), business_id: businessId, name: normalizedName, created_at: new Date().toISOString() }
+  await db.tables.add(table)
+  return table
+}
+
+export async function deleteTable(tableId: string): Promise<void> {
+  await db.tables.delete(tableId)
 }
 
 export async function listDrafts(businessId: string): Promise<LocalDraft[]> {

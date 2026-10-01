@@ -67,8 +67,13 @@ export function SettingsPage() {
 
   async function handleDeleteTable(id: string) {
     if (!business) return
-    await deleteTable(id)
-    setTables(await listTables(business.id))
+    setTableError(null)
+    try {
+      await deleteTable(business.id, id)
+      setTables(await listTables(business.id))
+    } catch (error) {
+      setTableError(error instanceof Error ? error.message : 'Could not remove table')
+    }
   }
 
   async function onSubmit(values: FormValues) {
@@ -168,7 +173,7 @@ export function SettingsPage() {
       <section className="rounded-xl border border-border bg-card p-6 space-y-4">
         <div>
           <h2 className="flex items-center gap-2 text-base font-semibold"><Armchair className="h-4 w-4 text-primary" />Dining tables</h2>
-          <p className="mt-1 text-sm text-muted-foreground">Register the tables available for orders. Table assignments are saved with draft orders on this POS device.</p>
+          <p className="mt-1 text-sm text-muted-foreground">Register tables once and they’ll be available to employees in this business. The list is cached on this device for offline viewing.</p>
         </div>
         <form onSubmit={handleAddTable} className="flex gap-2">
           <input aria-label="Table name" value={tableName} onChange={event => setTableName(event.target.value)} placeholder="e.g. Table 1" className="min-w-0 flex-1 rounded-lg border border-input bg-background px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-primary/50" />

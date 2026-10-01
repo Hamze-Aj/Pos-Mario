@@ -240,7 +240,23 @@ export async function saveDraft(input: {
 }
 
 export async function listTables(businessId: string): Promise<LocalTable[]> {
-  return db.diningTables.where('business_id').equals(businessId).sortBy('name')
+  if (!navigator.onLine) {
+    return db.diningTables.where('business_id').equals(businessId).sortBy('name')
+  }
+
+  const { data, error } = await supabase
+    .from('dining_tables')
+    .select('id, business_id, name, created_at')
+    .eq('business_id', businessId)
+    .order('name')
+  if (error) throw error
+
+  const tables = (data ?? []) as LocalTable[]
+  await db.transaction('rw', db.diningTables, async () => {
+    await db.diningTables.where('business_id').equals(businessId).delete()
+    await db.diningTables.bulkPut(tables)
+  })
+  return tables
 }
 
 export async function createTable(businessId: string, name: string): Promise<LocalTable> {
@@ -250,12 +266,26 @@ export async function createTable(businessId: string, name: string): Promise<Loc
   if (existing.some(table => table.name.toLowerCase() === normalizedName.toLowerCase())) {
     throw new Error('A table with this name already exists')
   }
-  const table: LocalTable = { id: uuidv4(), business_id: businessId, name: normalizedName, created_at: new Date().toISOString() }
-  await db.diningTables.add(table)
+  if (!navigator.onLine) throw new Error('Connect to the internet to register a shared table')
+  const { data, error } = await supabase
+    .from('dining_tables')
+    .insert({ business_id: businessId, name: normalizedName })
+    .select('id, business_id, name, created_at')
+    .single()
+  if (error) throw new Error(error.code === '23505' ? 'A table with this name already exists' : error.message)
+  const table = data as LocalTable
+  await db.diningTables.put(table)
   return table
 }
 
-export async function deleteTable(tableId: string): Promise<void> {
+export async function deleteTable(businessId: string, tableId: string): Promise<void> {
+  if (!navigator.onLine) throw new Error('Connect to the internet to remove a shared table')
+  const { error } = await supabase
+    .from('dining_tables')
+    .delete()
+    .eq('business_id', businessId)
+    .eq('id', tableId)
+  if (error) throw error
   await db.diningTables.delete(tableId)
 }
 

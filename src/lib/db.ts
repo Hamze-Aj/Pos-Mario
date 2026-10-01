@@ -19,7 +19,7 @@ export class PosDatabase extends Dexie {
   categories!: Table<LocalCategory>
   sales!: Table<LocalSale>
   drafts!: Table<LocalDraft>
-  tables!: Table<LocalTable>
+  diningTables!: Table<LocalTable>
 
   constructor() {
     super('pos_mario_db')

@@ -240,7 +240,7 @@ export async function saveDraft(input: {
 }
 
 export async function listTables(businessId: string): Promise<LocalTable[]> {
-  return db.tables.where('business_id').equals(businessId).sortBy('name')
+  return db.diningTables.where('business_id').equals(businessId).sortBy('name')
 }
 
 export async function createTable(businessId: string, name: string): Promise<LocalTable> {
@@ -251,12 +251,12 @@ export async function createTable(businessId: string, name: string): Promise<Loc
     throw new Error('A table with this name already exists')
   }
   const table: LocalTable = { id: uuidv4(), business_id: businessId, name: normalizedName, created_at: new Date().toISOString() }
-  await db.tables.add(table)
+  await db.diningTables.add(table)
   return table
 }
 
 export async function deleteTable(tableId: string): Promise<void> {
-  await db.tables.delete(tableId)
+  await db.diningTables.delete(tableId)
 }
 
 export async function listDrafts(businessId: string): Promise<LocalDraft[]> {

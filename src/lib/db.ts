@@ -44,6 +44,20 @@ export class PosDatabase extends Dexie {
       drafts:     'id, business_id, updated_at, table_id',
       tables:     'id, business_id, name',
     })
+
+    this.version(4)
+      .stores({
+        products:      'id, business_id, category_id, active',
+        categories:    'id, business_id, active',
+        sales:         'id, business_id, sync_status, employee_id, created_at',
+        drafts:        'id, business_id, updated_at, table_id',
+        tables:        'id, business_id, name',
+        diningTables:  'id, business_id, name',
+      })
+      .upgrade(async transaction => {
+        const legacyTables = await transaction.table('tables').toArray()
+        await transaction.table('diningTables').bulkPut(legacyTables)
+      })
   }
 }
 
